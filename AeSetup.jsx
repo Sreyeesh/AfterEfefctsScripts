@@ -1,37 +1,62 @@
-var resolutionPresets = {
-  "4k": [3840, 2160],
-  "Full HD": [1920, 1080],
-  "HD": [1280, 720],
-  "SD": [720, 480]
-};
+// Create a new project
+var proj = app.project;
 
-var resolutionDropdown = this.parent.findChild("resolutionDropdown");
-var widthInput = this.parent.findChild("widthInput");
-var heightInput = this.parent.findChild("heightInput");
-var createButton = this.parent.findChild("createButton");
+// Create a window for the GUI
+var w = new Window("dialog", "Scene and Camera Setup");
+w.orientation = "row";
 
-resolutionDropdown.onChange = function() {
-  var selectedResolution = this.selection.text;
-  var [width, height] = resolutionPresets[selectedResolution];
+// Add a dropdown to choose the resolution
+var resDropdown = w.add("dropdownlist", undefined, ["4K", "UHD", "Other"]);
 
-  widthInput.text = width;
-  heightInput.text = height;
-};
+// Add input fields for width and height
+var widthInput = w.add("edittext", undefined, "1920");
+var heightInput = w.add("edittext", undefined, "1080");
 
-createButton.onClick = function() {
-  var width = Number(widthInput.text);
-  var height = Number(heightInput.text);
-  var isWidthValid = !isNaN(width) && width > 0;
-  var isHeightValid = !isNaN(height) && height > 0;
+// Add a dropdown to choose the frame rate
+var frameRateDropdown = w.add("dropdownlist", undefined, [24, 25, 30, 60]);
 
-  if (!isWidthValid || !isHeightValid) {
-    alert("Please choose or type in a valid width and height before creating the composition.");
-    return;
+// Function to update the width and height based on the selected resolution
+resDropdown.onChange = function() {
+  switch (resDropdown.selection.text) {
+    case "4K":
+      widthInput.text = "3840";
+      heightInput.text = "2160";
+      break;
+    case "UHD":
+      widthInput.text = "1920";
+      heightInput.text = "1080";
+      break;
+    case "Other":
+      widthInput.text = "";
+      heightInput.text = "";
+      break;
   }
-
-  app.beginUndoGroup("Create Composition");
-  var comp = app.project.items.addComp("My Composition", width, height, 1, 10, 25);
-  app.endUndoGroup();
-
-  createButton.text = "Done";
 };
+
+// Add a button to create the scene and camera
+var createButton = w.add("button", undefined, "Create");
+createButton.onClick = function() {
+  // Set the frame rate to the selected value
+  proj.item.frameRate = frameRateDropdown.selection.text;
+
+  // Get the width and height from the input fields
+  var width = parseInt(widthInput.text);
+  var height = parseInt(heightInput.text);
+
+  // Create a new composition
+  var comp = proj.items.addComp("Scene", width, height, 1, 10, frameRateDropdown.selection.text);
+
+  // Create a new camera
+  var cameraLayer = comp.layers.addCamera("Camera", [comp.width/2, comp.height/2]);
+  cameraLayer.cameraSettings.zoom = 75;
+
+  // Set up the composition and camera as the active items
+  comp.openInViewer();
+  cameraLayer.parent = comp;
+
+  // Close the window
+  w.close();
+};
+
+// Show the window
+w.show();
